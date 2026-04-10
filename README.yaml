@@ -1,37 +1,172 @@
-name: Terraform Transit Gateway Module
+name: Terraform MongoDB Atlas Cluster with GCP Integration
 #logo: logo/logo.jpg
 badges:
   - name: Latest Release
-    image: https://img.shields.io/github/release/<owner/repo>.svg?style=for-the-badge
-    url: https://github.com/<owner/repo>/releases/latest
+    image: https://img.shields.io/github/release/cloudopsworks/terraform-module-mongoatlas-gcp-cluster.svg?style=for-the-badge
+    url: https://github.com/cloudopsworks/terraform-module-mongoatlas-gcp-cluster/releases/latest
   - name: Last Updated
-    image: https://img.shields.io/github/last-commit/<owner/repo>.svg?style=for-the-badge
-    url: https://github.com/<owner/repo>/commits
+    image: https://img.shields.io/github/last-commit/cloudopsworks/terraform-module-mongoatlas-gcp-cluster.svg?style=for-the-badge
+    url: https://github.com/cloudopsworks/terraform-module-mongoatlas-gcp-cluster/commits
 
 license: "APACHE2"
 
 copyrights:
   - name: "Cloud Ops Works LLC"
     url: "https://cloudopsworks.co"
-    year: "2026"
+    year: "2024"
 
-github_repo: <owner/repo>
+github_repo: cloudopsworks/terraform-module-mongoatlas-gcp-cluster
 
 description: |-
-  <description>
+  Terraform module for provisioning MongoDB Atlas clusters with GCP provider integration.
+  Wraps the generic [`terraform-module-mongoatlas-cluster`](https://github.com/cloudopsworks/terraform-module-mongoatlas-cluster)
+  and adds GCP-specific features: Secret Manager credential storage and optional CMEK encryption.
 
 # Introduction to the project
 introduction: |-
-#  This is an introduction.
+  This module is the GCP-specific wrapper for the generic MongoDB Atlas cluster module.
+  It handles all GCP provider interactions, including:
+
+  - MongoDB Atlas cluster provisioning (delegated to the generic module)
+  - GCP Secret Manager for secure admin credential storage
+  - Optional Google Cloud KMS (CMEK) encryption for the secret
+  - Automatic region detection via `data.google_client_config.current.region`
+  - Flexible replication: auto (multi-region) or user-managed (specific regions)
+
+  The cluster admin credentials are stored in a GCP Secret Manager secret and
+  exposed via the `cluster_secret_id` and `cluster_secret_name` outputs.
+
+  **Note on Atlas region format:** GCP regions like `us-central1` are automatically
+  converted to Atlas format `CENTRAL_US`. Set `settings.regions[].region` explicitly
+  to use a different Atlas region name.
 
 # How to use this project
 usage: |-
+  ### Terragrunt Usage
+
+  ```hcl
+  # terragrunt.hcl
+  include "root" {
+    path = find_in_parent_folders()
+  }
+
+  terraform {
+    source = "git::https://github.com/cloudopsworks/terraform-module-mongoatlas-gcp-cluster.git?ref=v1.0.0"
+  }
+
+  inputs = {
+    project_id  = "your-atlas-project-id"
+    name        = "my-cluster"
+
+    settings = {
+      cluster_type:  "REPLICASET"      # (Optional) REPLICASET | SHARDED | GEOSHARDED. Default: "REPLICASET"
+      major_version: 7.0               # (Optional) MongoDB major version. Default: null
+      termination_protection: true     # (Optional) Enable termination protection. Default: null
+      version_release: "LTS"           # (Optional) LTS | CONTINUOUS. Default: "LTS"
+
+      admin_user:
+        enabled:                   true       # (Optional) Create Atlas admin user. Default: false
+        username:                  "admin"    # (Optional) Username. Default: auto-generated
+        auth_database:             "admin"    # (Optional) Authentication database. Default: "admin"
+        kms_key_id:                ""         # (Optional) Google KMS crypto key resource name for CMEK
+        secret_replication_locations: []      # (Optional) GCP regions for user-managed replication. Default: [] (auto)
+        password_rotation_period:  90         # (Optional) Terraform-managed rotation period in days. Default: 90
+
+      regions:
+        - provider:          "GCP"          # (Optional) GCP | AWS | AZURE | TENANT. Default: "TENANT"
+          backing_provider:  "GCP"          # (Optional) Backing provider. Default: null
+          region:            "CENTRAL_US"   # (Optional) Atlas GCP region. Default: from GCP region
+          priority:          7              # (Optional) Node priority 1-7. Default: 7
+          electable:
+            size:  "M10"    # (Optional) Instance size. Default: "M2"
+            count: 3        # (Optional) Node count. Default: null
+
+      backup:
+        enabled:             true  # (Optional) Enable cloud backup. Default: false
+        hour_of_day:         2     # (Optional) Backup hour 0-23. Default: 0
+        restore_window_days: 7     # (Optional) Restore window in days. Default: 1
+        daily:
+          retention_value: 7       # (Optional) Daily retention in days. Default: 7
+        weekly:
+          retention_value: 4       # (Optional) Weekly retention in weeks. Default: 4
+        monthly:
+          retention_value: 12      # (Optional) Monthly retention in months. Default: 12
+    }
+  }
+  ```
 
 # Example usage
 examples: |-
+  ### Basic GCP Cluster
+
+  ```hcl
+  inputs = {
+    project_id = "your-atlas-project-id"
+    name       = "gcp-cluster"
+
+    settings = {
+      cluster_type           = "REPLICASET"
+      major_version          = 7.0
+      termination_protection = true
+      admin_user = {
+        enabled  = true
+        username = "gcp-admin"
+      }
+      regions = [{
+        provider         = "GCP"
+        backing_provider = "GCP"
+        region           = "CENTRAL_US"
+        priority         = 7
+        electable = {
+          size  = "M10"
+          count = 3
+        }
+      }]
+    }
+  }
+  ```
+
+  ### Cluster with CMEK Encryption
+
+  ```hcl
+  inputs = {
+    project_id = "your-atlas-project-id"
+    name       = "secure-gcp-cluster"
+
+    settings = {
+      encryption_at_rest_enabled  = true
+      encryption_at_rest_provider = "GCP"
+      admin_user = {
+        enabled    = true
+        kms_key_id = "projects/my-project/locations/us-central1/keyRings/my-ring/cryptoKeys/my-key"
+        secret_replication_locations = ["us-central1", "us-east1"]
+      }
+      regions = [{ ... }]
+    }
+  }
+  ```
 
 # How to get started quickly
 quickstart: |-
+  1. Configure GCP and MongoDB Atlas credentials:
+     ```bash
+     gcloud auth application-default login
+     export MONGODB_ATLAS_PUBLIC_KEY="your_public_key"
+     export MONGODB_ATLAS_PRIVATE_KEY="your_private_key"
+     ```
+
+  2. Create a Terragrunt configuration using the usage example above.
+
+  3. Initialize and apply:
+     ```bash
+     terraform init && terraform apply
+     ```
+
+  4. Retrieve credentials from Secret Manager:
+     ```bash
+     gcloud secrets versions access latest \
+       --secret=$(terraform output -raw cluster_secret_id) | jq .
+     ```
 
 include:
   - "docs/targets.md"
