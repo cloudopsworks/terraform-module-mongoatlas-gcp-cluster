@@ -1,1 +1,119 @@
 # Module configuration
+# Module-specific inputs for terraform-module-mongoatlas-gcp-cluster.
+# Variables injected automatically by the Terragrunt hierarchy (is_hub, spoke_def, org, extra_tags)
+# are intentionally omitted here.
+
+name_prefix: ""  # (Optional) Prefix prepended to all resource names. Default: ""
+name: "my-cluster"  # (Optional) Base name for the MongoDB Atlas cluster. Default: ""
+
+project_id: ""  # (Optional) MongoDB Atlas project ID in which to create the cluster. Default: ""
+                # Either project_id or project_name must be provided when not using a
+                # dependency-generated project.
+project_name: ""  # (Optional) MongoDB Atlas project name; used to look up the project ID
+                  # when project_id is not supplied. Default: ""
+
+settings:  # (Optional) Full cluster configuration object. Default: {}
+  cluster_type: "REPLICASET"          # (Optional) Cluster topology. Values: REPLICASET | SHARDED | GEOSHARDED. Default: "REPLICASET"
+  major_version: 7.0                  # (Optional) MongoDB major version (e.g. 7.0, 6.0). Default: null (Atlas-managed)
+  termination_protection: true        # (Optional) Prevent accidental cluster deletion. Default: null
+  version_release: "LTS"             # (Optional) Release cadence. Values: LTS | CONTINUOUS. Default: "LTS"
+  encryption_at_rest_enabled: false   # (Optional) Enable encryption at rest via a KMS provider. Default: false
+  encryption_at_rest_provider: "GCP"  # (Optional) KMS provider for encryption at rest. Values: AWS | GCP | AZURE. Default: "GCP"
+
+  bi_connector:
+    enabled: false                    # (Optional) Enable MongoDB BI Connector. Default: false
+    read_preference: "secondary"      # (Optional) BI Connector read preference.
+                                      # Values: primary | secondary | primaryPreferred | secondaryPreferred | nearest
+
+  admin_user:
+    enabled: false                    # (Optional) Create an Atlas admin database user. Default: false
+    username: "admin"                 # (Optional) Admin username. Default: auto-generated from cluster name
+    auth_database: "admin"            # (Optional) Authentication database. Default: "admin"
+    kms_key_id: ""                    # (Optional) Google KMS crypto key resource name used to encrypt the
+                                      # Secret Manager secret (CMEK). Format:
+                                      # projects/<project>/locations/<region>/keyRings/<ring>/cryptoKeys/<key>
+                                      # Default: "" (Google-managed key)
+    secret_replication_locations: []  # (Optional) List of GCP regions for user-managed Secret Manager
+                                      # replication. Empty list uses automatic (multi-region) replication.
+                                      # Example: ["us-central1", "us-east1"]. Default: []
+    password_rotation_period: 90      # (Optional) Terraform time_rotating period in days. Default: 90
+
+  advanced:
+    default_write_concern: "majority" # (Optional) Default write concern. Default: null
+    javascript: false                 # (Optional) Enable server-side JavaScript execution. Default: null
+    tls_protocol: "TLS1_2"          # (Optional) Minimum TLS version. Values: TLS1_0 | TLS1_1 | TLS1_2 | TLS1_3. Default: null
+    no_table_scan: false             # (Optional) Disallow collection scans. Default: null
+    oplog_size: 50                   # (Optional) Oplog size in MB. Default: null (Atlas-managed)
+    oplog_retention: 30              # (Optional) Oplog minimum retention in hours. Default: null
+    bi:
+      sample_size: 1000              # (Optional) BI Connector sample size for schema inference. Default: null
+      refresh_interval: 60           # (Optional) BI Connector schema refresh interval in seconds. Default: null
+    transaction_lifetime: 30         # (Optional) Maximum lifetime of multi-document transactions in seconds. Default: null
+
+  backup:
+    enabled: false                   # (Optional) Enable Atlas Cloud Backup. Default: false
+    hour_of_day: 0                   # (Optional) UTC hour for the backup window (0-23). Default: 0
+    minute_of_hour: 0                # (Optional) Minute of the backup window (0-59). Default: 0
+    restore_window_days: 1           # (Optional) Number of days for restore window. Default: 1
+    auto_export: false               # (Optional) Automatically export snapshots to cloud storage. Default: null
+    hourly:
+      interval: 6                    # (Optional) Hourly snapshot interval in hours. Default: 1
+      retention_unit: "days"         # (Optional) Retention unit. Values: days. Default: "days"
+      retention_value: 2             # (Optional) Number of retention units to keep hourly snapshots. Default: 1
+    daily:
+      interval: 1                    # (Optional) Daily snapshot frequency. Default: 1
+      retention_unit: "days"         # (Optional) Retention unit. Values: days. Default: "days"
+      retention_value: 7             # (Optional) Number of days to keep daily snapshots. Default: 7
+    weekly:
+      interval: 1                    # (Optional) Day of week for weekly snapshot (1=Monday … 7=Sunday). Default: 1
+      retention_unit: "weeks"        # (Optional) Retention unit. Values: weeks. Default: "weeks"
+      retention_value: 4             # (Optional) Number of weeks to keep weekly snapshots. Default: 4
+    monthly:
+      interval: 1                    # (Optional) Day of month for monthly snapshot (1-28). Default: 1
+      retention_unit: "months"       # (Optional) Retention unit. Values: months. Default: "months"
+      retention_value: 12            # (Optional) Number of months to keep monthly snapshots. Default: 12
+    yearly:
+      interval: 1                    # (Optional) Month of year for yearly snapshot (1-12). Default: 1
+      retention_unit: "years"        # (Optional) Retention unit. Values: years. Default: "years"
+      retention_value: 2             # (Optional) Number of years to keep yearly snapshots. Default: 2
+    export:
+      cloud_provider: "GCP"         # (Optional) Cloud provider for snapshot export. Default: "GCP"
+      service_url: "gs://bucket"    # (Required when auto_export=true) GCS bucket URL for backup export.
+                                    # Format: gs://<bucket-name>
+      role_id: "role-id"            # (Required when auto_export=true) Atlas GCP service account role ID
+                                    # for bucket access.
+      frequency_type: "daily"       # (Optional) Export frequency. Values: hourly | daily | weekly | monthly. Default: "daily"
+    copy:
+      cloud_provider: "GCP"         # (Optional) Cloud provider for snapshot copy. Default: "GCP"
+      frequencies: []               # (Optional) List of snapshot frequencies to copy. Default: []
+      region_name: "CENTRAL_US"     # (Optional) Target Atlas region name for copied snapshots.
+                                    # GCP region us-central1 maps to CENTRAL_US. Default: computed from GCP region
+      copy_oplogs: false            # (Optional) Include oplog data in copied snapshots. Default: false
+
+  global:
+    zone_name: "Zone 1"            # (Optional) Zone name for global cluster sharding. Default: null
+    zone_id: ""                    # (Optional) Zone ID for global cluster sharding. Default: null
+
+  regions:
+    - backing_provider: "GCP"      # (Optional) Underlying cloud provider for TENANT clusters. Values: AWS | GCP | AZURE. Default: null
+      provider: "GCP"              # (Optional) Atlas cloud provider. Values: AWS | GCP | AZURE | TENANT. Default: "TENANT"
+      region: "CENTRAL_US"         # (Optional) Atlas region name for the node.
+                                   # GCP region format us-central1 is auto-converted to CENTRAL_US.
+                                   # Default: computed from data.google_client_config.current.region
+      priority: 7                  # (Optional) Electable node election priority (1-7, 7=highest). Default: 7
+      electable:
+        size: "M10"                # (Optional) Instance size for electable nodes. Default: "M2"
+        count: 3                   # (Optional) Number of electable nodes. Default: null
+        disk_size: 100             # (Optional) Storage capacity in GB per node. Default: null
+      analytics:
+        size: "M10"                # (Optional) Instance size for analytics nodes. Default: "M2"
+        count: 1                   # (Optional) Number of analytics nodes. Default: null
+      read_only:
+        size: "M10"                # (Optional) Instance size for read-only nodes. Default: "M2"
+        count: 0                   # (Optional) Number of read-only nodes. Default: null
+      auto_scaling:
+        disk: false                # (Optional) Enable automatic disk storage scaling. Default: false
+        compute: false             # (Optional) Enable automatic compute (instance size) scaling. Default: false
+        max_size: "M40"            # (Optional) Maximum instance size when compute auto-scaling is enabled. Default: null
+        min_size: "M10"            # (Optional) Minimum instance size when compute auto-scaling is enabled. Default: null
+        scale_down: false          # (Optional) Allow automatic scale-down of instance size. Default: false
