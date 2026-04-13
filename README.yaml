@@ -57,20 +57,26 @@ usage: |-
   inputs = {
     project_id  = "your-atlas-project-id"
     name        = "my-cluster"
+    run_hoop    = false  # (Optional) Enable HOOP agent integration. Default: false
 
     settings = {
       cluster_type:  "REPLICASET"      # (Optional) REPLICASET | SHARDED | GEOSHARDED. Default: "REPLICASET"
       major_version: 7.0               # (Optional) MongoDB major version. Default: null
       termination_protection: true     # (Optional) Enable termination protection. Default: null
       version_release: "LTS"           # (Optional) LTS | CONTINUOUS. Default: "LTS"
+      cloud_provider: "GCP"            # (Optional) Default provider for backup export/copy. Default: "GCP"
 
       admin_user:
         enabled:                   true       # (Optional) Create Atlas admin user. Default: false
         username:                  "admin"    # (Optional) Username. Default: auto-generated
         auth_database:             "admin"    # (Optional) Authentication database. Default: "admin"
+        use_external_rotation:     false      # (Optional) Delegate rotation to external manager. Default: false
+        rotation_lambda_name:      ""         # (Optional) External rotator identifier. Required when use_external_rotation=true
+        rotation_period:           90         # (Optional) External rotation period in days. Default: 90
+        rotation_duration:         "1h"       # (Optional) External rotator execution duration. Default: "1h"
+        password_rotation_period:  90         # (Optional) Terraform-managed rotation period in days. Default: 90
         kms_key_id:                ""         # (Optional) Google KMS crypto key resource name for CMEK
         secret_replication_locations: []      # (Optional) GCP regions for user-managed replication. Default: [] (auto)
-        password_rotation_period:  90         # (Optional) Terraform-managed rotation period in days. Default: 90
 
       regions:
         - provider:          "GCP"          # (Optional) GCP | AWS | AZURE | TENANT. Default: "TENANT"
@@ -78,13 +84,17 @@ usage: |-
           region:            "CENTRAL_US"   # (Optional) Atlas GCP region. Default: from GCP region
           priority:          7              # (Optional) Node priority 1-7. Default: 7
           electable:
-            size:  "M10"    # (Optional) Instance size. Default: "M2"
-            count: 3        # (Optional) Node count. Default: null
+            size:       "M10"    # (Optional) Instance size. Default: "M2"
+            count:      3        # (Optional) Node count. Default: null
+            disk_size:  100      # (Optional) Disk size in GB. Default: null
+            iops:       3000     # (Optional) Provisioned IOPS. Default: null
+            volume_type: "STANDARD"  # (Optional) Disk volume type. Default: null
 
       backup:
         enabled:             true  # (Optional) Enable cloud backup. Default: false
         hour_of_day:         2     # (Optional) Backup hour 0-23. Default: 0
         restore_window_days: 7     # (Optional) Restore window in days. Default: 1
+        export_prefix:       false # (Optional) Use org/group names in export prefix. Default: null
         daily:
           retention_value: 7       # (Optional) Daily retention in days. Default: 7
         weekly:
@@ -108,9 +118,11 @@ examples: |-
       cluster_type           = "REPLICASET"
       major_version          = 7.0
       termination_protection = true
+      cloud_provider         = "GCP"
       admin_user = {
         enabled  = true
         username = "gcp-admin"
+        password_rotation_period = 90
       }
       regions = [{
         provider         = "GCP"
@@ -118,8 +130,9 @@ examples: |-
         region           = "CENTRAL_US"
         priority         = 7
         electable = {
-          size  = "M10"
-          count = 3
+          size      = "M10"
+          count     = 3
+          disk_size = 100
         }
       }]
     }
@@ -136,10 +149,31 @@ examples: |-
     settings = {
       encryption_at_rest_enabled  = true
       encryption_at_rest_provider = "GCP"
+      cloud_provider              = "GCP"
       admin_user = {
         enabled    = true
         kms_key_id = "projects/my-project/locations/us-central1/keyRings/my-ring/cryptoKeys/my-key"
         secret_replication_locations = ["us-central1", "us-east1"]
+      }
+      regions = [{ ... }]
+    }
+  }
+  ```
+
+  ### Cluster with External Password Rotation
+
+  ```hcl
+  inputs = {
+    project_id = "your-atlas-project-id"
+    name       = "rotated-gcp-cluster"
+
+    settings = {
+      admin_user = {
+        enabled               = true
+        use_external_rotation = true
+        rotation_lambda_name  = "my-rotation-function"
+        rotation_period       = 30
+        rotation_duration     = "2h"
       }
       regions = [{ ... }]
     }

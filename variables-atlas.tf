@@ -35,11 +35,12 @@ variable "project_name" {
 # Variable entries as YAML
 # settings:
 #   cluster_type: "REPLICASET"          # (Optional) REPLICASET | SHARDED | GEOSHARDED. Default: "REPLICASET"
-#   major_version: 7.0                  # (Optional) MongoDB major version. Default: null
+#   major_version: 7.0                  # (Optional) MongoDB major version. Default: null (uses Atlas default)
 #   termination_protection: true        # (Optional) Enable termination protection. Default: null
 #   version_release: "LTS"              # (Optional) LTS | CONTINUOUS. Default: "LTS"
 #   encryption_at_rest_enabled: false   # (Optional) Enable encryption at rest. Default: false
 #   encryption_at_rest_provider: "GCP"  # (Optional) AWS | GCP | AZURE. Default: "GCP" for this module
+#   cloud_provider: "GCP"               # (Optional) Default cloud provider for backup export/copy. Default: "GCP" for this module
 #   bi_connector:
 #     enabled: false                    # (Optional) Enable BI Connector. Default: false
 #     read_preference: "secondary"      # (Optional) primary | secondary | primaryPreferred | secondaryPreferred | nearest
@@ -47,9 +48,13 @@ variable "project_name" {
 #     enabled: false                    # (Optional) Create Atlas admin user. Default: false
 #     username: "my-admin"              # (Optional) Username. Default: auto-generated
 #     auth_database: "admin"            # (Optional) Authentication database. Default: "admin"
+#     use_external_rotation: false      # (Optional) Use external rotation manager for the password. Default: false
+#     rotation_lambda_name: ""          # (Optional) External rotator identifier (e.g. Lambda name). Required when use_external_rotation is true
+#     rotation_period: 90               # (Optional) External rotation period in days. Default: 90
+#     rotation_duration: "1h"           # (Optional) Duration for external rotator execution. Default: "1h"
+#     password_rotation_period: 90      # (Optional) Terraform time_rotating period in days. Default: 90
 #     kms_key_id: "projects/.../..."    # (Optional) Google KMS crypto key resource name for Secret Manager CMEK
 #     secret_replication_locations: []  # (Optional) List of GCP regions for user-managed replication. Default: [] (auto replication)
-#     password_rotation_period: 90      # (Optional) Terraform time_rotating period in days. Default: 90
 #   advanced:
 #     default_write_concern: "majority" # (Optional) Write concern. Default: null
 #     javascript: false                 # (Optional) Enable JavaScript. Default: null
@@ -67,6 +72,7 @@ variable "project_name" {
 #     minute_of_hour: 0                # (Optional) Backup minute 0-59. Default: 0
 #     restore_window_days: 1           # (Optional) Restore window in days. Default: 1
 #     auto_export: false               # (Optional) Enable automatic export. Default: null
+#     export_prefix: false             # (Optional) Use org and group names in export prefix. Default: null
 #     hourly:
 #       interval: 6                    # (Optional) Frequency in hours. Default: 1
 #       retention_unit: "days"         # (Optional) days. Default: "days"
@@ -88,12 +94,14 @@ variable "project_name" {
 #       retention_unit: "years"        # (Optional) years. Default: "years"
 #       retention_value: 2             # (Optional) Retention value. Default: 2
 #     export:
-#       cloud_provider: "GCP"         # (Optional) Override export provider. Default: "GCP"
-#       service_url: "gs://bucket"    # (Required for GCP) GCS bucket URL for backup export
-#       role_id: "role-id"            # (Required for GCP) Atlas GCP service account role ID
-#       frequency_type: "daily"       # (Optional) hourly | daily | weekly | monthly. Default: "daily"
+#       cloud_provider: "GCP"          # (Optional) Override export cloud provider. Default: "GCP" for this module
+#       service_url: "gs://bucket"     # (Required for GCP) GCS bucket URL for backup export
+#       role_id: "role-id"             # (Required for GCP) Atlas GCP service account role ID
+#       bucket_name: ""                # (Required for AWS) S3 bucket name for backup export
+#       iam_role_id: ""                # (Required for AWS) IAM role ID (assumed role) for bucket access
+#       frequency_type: "daily"        # (Optional) hourly | daily | weekly | monthly. Default: "daily"
 #     copy:
-#       cloud_provider: "GCP"         # (Optional) Override copy provider. Default: "GCP"
+#       cloud_provider: "GCP"         # (Optional) Override copy cloud provider. Default: "GCP" for this module
 #       frequencies: []               # (Optional) Frequencies to copy. Default: []
 #       region_name: "CENTRAL_US"     # (Optional) Target Atlas region. Default: computed from GCP region
 #       copy_oplogs: false            # (Optional) Copy oplogs. Default: false
@@ -109,20 +117,41 @@ variable "project_name" {
 #         size: "M10"                # (Optional) Instance size. Default: "M2"
 #         count: 3                   # (Optional) Node count. Default: null
 #         disk_size: 100             # (Optional) Disk size in GB. Default: null
+#         iops: 3000                 # (Optional) Provisioned IOPS. Default: null
+#         volume_type: "STANDARD"    # (Optional) Disk volume type. Default: null
 #       analytics:
 #         size: "M10"                # (Optional) Analytics instance size. Default: "M2"
 #         count: 1                   # (Optional) Node count. Default: null
+#         disk_size: 100             # (Optional) Disk size in GB. Default: null
+#         iops: 3000                 # (Optional) Provisioned IOPS. Default: null
+#         volume_type: "STANDARD"    # (Optional) Disk volume type. Default: null
 #       read_only:
 #         size: "M10"                # (Optional) Read-only instance size. Default: "M2"
 #         count: 0                   # (Optional) Node count. Default: null
+#         disk_size: 100             # (Optional) Disk size in GB. Default: null
+#         iops: 3000                 # (Optional) Provisioned IOPS. Default: null
+#         volume_type: "STANDARD"    # (Optional) Disk volume type. Default: null
 #       auto_scaling:
 #         disk: false                # (Optional) Enable disk auto-scaling. Default: false
 #         compute: false             # (Optional) Enable compute auto-scaling. Default: false
 #         max_size: "M40"            # (Optional) Maximum instance size. Default: null
 #         min_size: "M10"            # (Optional) Minimum instance size. Default: null
 #         scale_down: false          # (Optional) Enable scale-down. Default: false
+#         analytics:
+#           compute: false           # (Optional) Enable analytics compute auto-scaling. Default: false
+#           disk: false              # (Optional) Enable analytics disk auto-scaling. Default: false
+#           max_size: "M40"          # (Optional) Maximum analytics instance size. Default: null
+#           min_size: "M10"          # (Optional) Minimum analytics instance size. Default: null
+#           scale_down: false        # (Optional) Enable analytics scale-down. Default: false
 variable "settings" {
   description = "Settings for the MongoDB Atlas cluster and GCP integrations"
   type        = any
   default     = {}
+}
+
+# run_hoop: false  # (Optional) Run HOOP agent integration. Default: false
+variable "run_hoop" {
+  description = "(Optional) Run HOOP agent integration for the cluster. Default: false"
+  type        = bool
+  default     = false
 }
