@@ -8,8 +8,8 @@
 #
 
 locals {
-  hoop_enabled     = try(var.settings.hoop.enabled, false) && try(var.settings.admin_user.enabled, false)
-  hoop_enterprise  = local.hoop_enabled && !try(var.settings.hoop.community, true)
+  hoop_enabled    = try(var.settings.hoop.enabled, false) && try(var.settings.admin_user.enabled, false)
+  hoop_enterprise = local.hoop_enabled && !try(var.settings.hoop.community, true)
   hoop_secret_name = lower(replace(
     format("%s/mongodbatlas/%s/admin-conn-string",
       replace(local.secret_store_path, "/", "-"),
@@ -53,7 +53,7 @@ output "hoop_connections" {
   EOD
   value = local.hoop_enterprise ? {
     "admin" = {
-      name           = "mongo-db-${lower(module.cluster.cluster_name)}-admin"
+      name           = "mongo-db-${lower(module.cluster.cluster_name)}-ow"
       agent_id       = var.settings.hoop.agent_id
       type           = "database"
       subtype        = "mongodb"
@@ -65,7 +65,7 @@ output "hoop_connections" {
         runbooks = "enabled"
         schema   = "enabled"
       }
-      import  = try(var.settings.hoop.import, false)
+      import = try(var.settings.hoop.import, false)
       secrets = {
         "envvar:CONNECTION_STRING" = "_envs/gcp/${google_secret_manager_secret.atlas_cred_conn_string[0].secret_id}"
       }
