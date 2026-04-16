@@ -153,3 +153,5 @@ settings:  # (Optional) Full cluster configuration object. Default: {}
     tags: {}                                    # (Optional) Tags map for the Hoop connection. Default: {}.
     access_control: []                          # (Optional) Access control group list. Default: [].
     import: false                               # (Optional) Import existing Hoop connection instead of creating. Default: false.
+    # Generated connection name (enterprise mode): mongo-db-<cluster-name>-ow
+    # Pass hoop_connections output directly to terraform-module-hoop-connection as the `connections` input.

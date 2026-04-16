@@ -57,7 +57,6 @@ usage: |-
   inputs = {
     project_id  = "your-atlas-project-id"
     name        = "my-cluster"
-    run_hoop    = false  # (Optional) Enable HOOP agent integration. Default: false
 
     settings = {
       cluster_type:  "REPLICASET"      # (Optional) REPLICASET | SHARDED | GEOSHARDED. Default: "REPLICASET"
@@ -77,6 +76,16 @@ usage: |-
         password_rotation_period:  90         # (Optional) Terraform-managed rotation period in days. Default: 90
         kms_key_id:                ""         # (Optional) Google KMS crypto key resource name for CMEK
         secret_replication_locations: []      # (Optional) GCP regions for user-managed replication. Default: [] (auto)
+
+      hoop:
+        enabled: false                              # (Optional) Enable hoop_connections output. Default: false
+        community: true                             # (Optional) true=community (returns null for GCP), false=enterprise. Default: true
+        agent_id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxx"  # (Required when enabled+enterprise) Hoop.dev agent UUID
+        tags: {}                                    # (Optional) Tags map for the Hoop connection. Default: {}
+        access_control: []                          # (Optional) Access control group list. Default: []
+        import: false                               # (Optional) Import existing Hoop connection. Default: false
+        # Generated connection name format: mongo-db-<cluster-name>-ow
+        # Pass hoop_connections output directly to terraform-module-hoop-connection.
 
       regions:
         - provider:          "GCP"          # (Optional) GCP | AWS | AZURE | TENANT. Default: "TENANT"
@@ -174,6 +183,33 @@ examples: |-
         rotation_lambda_name  = "my-rotation-function"
         rotation_period       = 30
         rotation_duration     = "2h"
+      }
+      regions = [{ ... }]
+    }
+  }
+  ```
+
+  ### Cluster with Hoop Enterprise Integration
+
+  ```hcl
+  inputs = {
+    project_id = "your-atlas-project-id"
+    name       = "hoop-gcp-cluster"
+
+    settings = {
+      admin_user = {
+        enabled = true
+      }
+      hoop = {
+        enabled        = true
+        community      = false  # enterprise mode: exposes _envs/gcp/ secret reference
+        agent_id       = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+        access_control = ["eng-team"]
+        tags           = { env = "production" }
+        import         = false
+        # The hoop_connections output will contain a connection named:
+        # mongo-db-<cluster-name>-ow
+        # Pass it directly to terraform-module-hoop-connection.
       }
       regions = [{ ... }]
     }
