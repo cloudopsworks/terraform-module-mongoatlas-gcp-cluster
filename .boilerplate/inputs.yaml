@@ -12,7 +12,7 @@ project_id: ""  # (Optional) MongoDB Atlas project ID in which to create the clu
 project_name: ""  # (Optional) MongoDB Atlas project name; used to look up the project ID
                   # when project_id is not supplied. Default: ""
 
-run_hoop: false  # (Optional) Enable HOOP agent integration for the cluster. Default: false
+run_hoop: false  # (Deprecated) No-op. Use hoop_connections output with terraform-module-hoop-connection instead. Default: false.
 
 settings:  # (Optional) Full cluster configuration object. Default: {}
   cluster_type: "REPLICASET"          # (Optional) Cluster topology. Values: REPLICASET | SHARDED | GEOSHARDED. Default: "REPLICASET"
@@ -146,3 +146,10 @@ settings:  # (Optional) Full cluster configuration object. Default: {}
           max_size: "M40"          # (Optional) Maximum instance size for analytics auto-scaling. Default: null
           min_size: "M10"          # (Optional) Minimum instance size for analytics auto-scaling. Default: null
           scale_down: false        # (Optional) Allow analytics scale-down. Default: false
+  hoop:
+    enabled: false                              # (Optional) Enable hoop_connections output. Default: false.
+    community: true                             # (Optional) true=community (returns null for GCP), false=enterprise (_envs/gcp/). Default: true.
+    agent_id: ""                                # (Required when enabled+enterprise) Hoop.dev agent UUID.
+    tags: {}                                    # (Optional) Tags map for the Hoop connection. Default: {}.
+    access_control: []                          # (Optional) Access control group list. Default: [].
+    import: false                               # (Optional) Import existing Hoop connection instead of creating. Default: false.
