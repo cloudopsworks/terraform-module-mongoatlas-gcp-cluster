@@ -85,7 +85,6 @@ terraform {
 inputs = {
   project_id  = "your-atlas-project-id"
   name        = "my-cluster"
-  run_hoop    = false  # (Optional) Enable HOOP agent integration. Default: false
 
   settings = {
     cluster_type:  "REPLICASET"      # (Optional) REPLICASET | SHARDED | GEOSHARDED. Default: "REPLICASET"
@@ -105,6 +104,16 @@ inputs = {
       password_rotation_period:  90         # (Optional) Terraform-managed rotation period in days. Default: 90
       kms_key_id:                ""         # (Optional) Google KMS crypto key resource name for CMEK
       secret_replication_locations: []      # (Optional) GCP regions for user-managed replication. Default: [] (auto)
+
+    hoop:
+      enabled: false                              # (Optional) Enable hoop_connections output. Default: false
+      community: true                             # (Optional) true=community (returns null for GCP), false=enterprise. Default: true
+      agent_id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxx"  # (Required when enabled+enterprise) Hoop.dev agent UUID
+      tags: {}                                    # (Optional) Tags map for the Hoop connection. Default: {}
+      access_control: []                          # (Optional) Access control group list. Default: []
+      import: false                               # (Optional) Import existing Hoop connection. Default: false
+      # Generated connection name format: mongo-db-<cluster-name>-ow
+      # Pass hoop_connections output directly to terraform-module-hoop-connection.
 
     regions:
       - provider:          "GCP"          # (Optional) GCP | AWS | AZURE | TENANT. Default: "TENANT"
@@ -231,6 +240,33 @@ inputs = {
 }
 ```
 
+### Cluster with Hoop Enterprise Integration
+
+```hcl
+inputs = {
+  project_id = "your-atlas-project-id"
+  name       = "hoop-gcp-cluster"
+
+  settings = {
+    admin_user = {
+      enabled = true
+    }
+    hoop = {
+      enabled        = true
+      community      = false  # enterprise mode: exposes _envs/gcp/ secret reference
+      agent_id       = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+      access_control = ["eng-team"]
+      tags           = { env = "production" }
+      import         = false
+      # The hoop_connections output will contain a connection named:
+      # mongo-db-<cluster-name>-ow
+      # Pass it directly to terraform-module-hoop-connection.
+    }
+    regions = [{ ... }]
+  }
+}
+```
+
 
 
 ## Makefile Targets
@@ -274,7 +310,9 @@ Available targets:
 | Name | Type |
 |------|------|
 | [google_secret_manager_secret.atlas_cred](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/secret_manager_secret) | resource |
+| [google_secret_manager_secret.atlas_cred_conn_string](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/secret_manager_secret) | resource |
 | [google_secret_manager_secret_version.atlas_cred](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/secret_manager_secret_version) | resource |
+| [google_secret_manager_secret_version.atlas_cred_conn_string](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/secret_manager_secret_version) | resource |
 | [google_client_config.current](https://registry.terraform.io/providers/hashicorp/google/latest/docs/data-sources/client_config) | data source |
 | [google_project.current](https://registry.terraform.io/providers/hashicorp/google/latest/docs/data-sources/project) | data source |
 
@@ -289,7 +327,7 @@ Available targets:
 | <a name="input_org"></a> [org](#input\_org) | Organization details | <pre>object({<br/>    organization_name = string<br/>    organization_unit = string<br/>    environment_type  = string<br/>    environment_name  = string<br/>  })</pre> | n/a | yes |
 | <a name="input_project_id"></a> [project\_id](#input\_project\_id) | (optional) The ID of the Atlas project where the cluster will be created | `string` | `""` | no |
 | <a name="input_project_name"></a> [project\_name](#input\_project\_name) | (optional) The name of the Atlas project where the cluster will be created | `string` | `""` | no |
-| <a name="input_run_hoop"></a> [run\_hoop](#input\_run\_hoop) | (Optional) Run HOOP agent integration for the cluster. Default: false | `bool` | `false` | no |
+| <a name="input_run_hoop"></a> [run\_hoop](#input\_run\_hoop) | DEPRECATED: No-op. Use the hoop\_connections output with terraform-module-hoop-connection instead. | `bool` | `false` | no |
 | <a name="input_settings"></a> [settings](#input\_settings) | Settings for the MongoDB Atlas cluster and GCP integrations | `any` | `{}` | no |
 | <a name="input_spoke_def"></a> [spoke\_def](#input\_spoke\_def) | Spoke ID Number, must be a 3 digit number | `string` | `"001"` | no |
 
@@ -307,6 +345,7 @@ Available targets:
 | <a name="output_cluster_server_type"></a> [cluster\_server\_type](#output\_cluster\_server\_type) | n/a |
 | <a name="output_cluster_state"></a> [cluster\_state](#output\_cluster\_state) | n/a |
 | <a name="output_cluster_version"></a> [cluster\_version](#output\_cluster\_version) | n/a |
+| <a name="output_hoop_connections"></a> [hoop\_connections](#output\_hoop\_connections) | Hoop connection definition for the cluster admin user.<br/>Returns null in community mode — GCP Secret Manager has no native Hoop community provider.<br/>Enterprise mode: pass directly as the `connections` input to terraform-module-hoop-connection.<br/>Note: terraform-module-hoop-connection manages connections via the Hoop provider; ensure your<br/>Hoop agent has access to retrieve secrets from GCP Secret Manager. |
 
 
 

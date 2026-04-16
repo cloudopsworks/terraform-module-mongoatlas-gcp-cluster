@@ -27,7 +27,9 @@
 | Name | Type |
 |------|------|
 | [google_secret_manager_secret.atlas_cred](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/secret_manager_secret) | resource |
+| [google_secret_manager_secret.atlas_cred_conn_string](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/secret_manager_secret) | resource |
 | [google_secret_manager_secret_version.atlas_cred](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/secret_manager_secret_version) | resource |
+| [google_secret_manager_secret_version.atlas_cred_conn_string](https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/secret_manager_secret_version) | resource |
 | [google_client_config.current](https://registry.terraform.io/providers/hashicorp/google/latest/docs/data-sources/client_config) | data source |
 | [google_project.current](https://registry.terraform.io/providers/hashicorp/google/latest/docs/data-sources/project) | data source |
 
@@ -42,7 +44,7 @@
 | <a name="input_org"></a> [org](#input\_org) | Organization details | <pre>object({<br/>    organization_name = string<br/>    organization_unit = string<br/>    environment_type  = string<br/>    environment_name  = string<br/>  })</pre> | n/a | yes |
 | <a name="input_project_id"></a> [project\_id](#input\_project\_id) | (optional) The ID of the Atlas project where the cluster will be created | `string` | `""` | no |
 | <a name="input_project_name"></a> [project\_name](#input\_project\_name) | (optional) The name of the Atlas project where the cluster will be created | `string` | `""` | no |
-| <a name="input_run_hoop"></a> [run\_hoop](#input\_run\_hoop) | (Optional) Run HOOP agent integration for the cluster. Default: false | `bool` | `false` | no |
+| <a name="input_run_hoop"></a> [run\_hoop](#input\_run\_hoop) | DEPRECATED: No-op. Use the hoop\_connections output with terraform-module-hoop-connection instead. | `bool` | `false` | no |
 | <a name="input_settings"></a> [settings](#input\_settings) | Settings for the MongoDB Atlas cluster and GCP integrations | `any` | `{}` | no |
 | <a name="input_spoke_def"></a> [spoke\_def](#input\_spoke\_def) | Spoke ID Number, must be a 3 digit number | `string` | `"001"` | no |
 
@@ -60,3 +62,4 @@
 | <a name="output_cluster_server_type"></a> [cluster\_server\_type](#output\_cluster\_server\_type) | n/a |
 | <a name="output_cluster_state"></a> [cluster\_state](#output\_cluster\_state) | n/a |
 | <a name="output_cluster_version"></a> [cluster\_version](#output\_cluster\_version) | n/a |
+| <a name="output_hoop_connections"></a> [hoop\_connections](#output\_hoop\_connections) | Hoop connection definition for the cluster admin user.<br/>Returns null in community mode — GCP Secret Manager has no native Hoop community provider.<br/>Enterprise mode: pass directly as the `connections` input to terraform-module-hoop-connection.<br/>Note: terraform-module-hoop-connection manages connections via the Hoop provider; ensure your<br/>Hoop agent has access to retrieve secrets from GCP Secret Manager. |
