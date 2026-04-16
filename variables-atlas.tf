@@ -143,15 +143,22 @@ variable "project_name" {
 #           max_size: "M40"          # (Optional) Maximum analytics instance size. Default: null
 #           min_size: "M10"          # (Optional) Minimum analytics instance size. Default: null
 #           scale_down: false        # (Optional) Enable analytics scale-down. Default: false
+#   hoop:
+#     enabled: false                              # (Optional) Enable hoop_connections output. Default: false.
+#     community: true                             # (Optional) true=community (returns null for GCP), false=enterprise (_envs/gcp/). Default: true.
+#     agent_id: "xxxxxxxx-xxxx-xxxx-xxxx-xxxx"  # (Required when enabled+enterprise) Hoop.dev agent UUID.
+#     tags: {}                                    # (Optional) Tags map for the Hoop connection. Default: {}.
+#     access_control: []                          # (Optional) Access control group list. Default: [].
+#     import: false                               # (Optional) Import existing Hoop connection instead of creating. Default: false.
 variable "settings" {
   description = "Settings for the MongoDB Atlas cluster and GCP integrations"
   type        = any
   default     = {}
 }
 
-# run_hoop: false  # (Optional) Run HOOP agent integration. Default: false
+# run_hoop: false  # (Deprecated) No-op. Use hoop_connections output with terraform-module-hoop-connection instead. Default: false.
 variable "run_hoop" {
-  description = "(Optional) Run HOOP agent integration for the cluster. Default: false"
+  description = "DEPRECATED: No-op. Use the hoop_connections output with terraform-module-hoop-connection instead."
   type        = bool
   default     = false
 }

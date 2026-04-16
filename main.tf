@@ -20,6 +20,5 @@ module "cluster" {
   project_name   = var.project_name
   region         = data.google_client_config.current.region
   cloud_provider = "GCP"
-  run_hoop       = var.run_hoop
   settings       = var.settings
 }
